@@ -4,9 +4,15 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/jbasement/cp-cli/pkg/describe"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/util/homedir"
 )
+
+var Namespace, Kubeconfig string
 
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
@@ -18,7 +24,15 @@ var describeCmd = &cobra.Command{
 		// 	return err
 		// }
 		// return nil
-		describe.Describe(args)
+
+		if Kubeconfig == "" {
+			Kubeconfig = os.Getenv("KUBECONFIG")
+		}
+		if Kubeconfig == "" {
+			Kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
+		}
+
+		describe.Describe(args, Namespace, Kubeconfig)
 		return nil
 	},
 }
@@ -26,13 +40,7 @@ var describeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(describeCmd)
 
-	// Here you will define your flags and configuration settings.
+	describeCmd.Flags().StringVarP(&Namespace, "namespace", "n", "default", "k8s namespace")
+	describeCmd.Flags().StringVarP(&Kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// describeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// describeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

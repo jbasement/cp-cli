@@ -3,7 +3,6 @@ package describe
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 type KubeClient struct {
@@ -31,10 +29,8 @@ type Resource struct {
 	children []Resource
 }
 
-func Describe(args []string) {
-	namespace := "default"
-
-	kubeClient, err := newKubeClient()
+func Describe(args []string, namespace string, kubeconfig string) {
+	kubeClient, err := newKubeClient(kubeconfig)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -152,16 +148,7 @@ func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion strin
 	return false, fmt.Errorf("resource not found")
 }
 
-func newKubeClient() (*KubeClient, error) {
-	var kubeconfig string
-
-	if kubeconfig == "" {
-		kubeconfig = os.Getenv("KUBECONFIG")
-	}
-	if kubeconfig == "" {
-		kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
-	}
-
+func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	// Initialize a Kubernetes client.
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
