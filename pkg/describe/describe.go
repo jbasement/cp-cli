@@ -53,7 +53,6 @@ func Describe(args []string) {
 
 func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiVersion string, namespace string) (*unstructured.Unstructured, error) {
 	gr := schema.ParseGroupResource(resourceKind)
-
 	manifest := &unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
@@ -65,12 +64,12 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 		Kind:    gr.Resource,
 	})
 
-	isNamespaced, err := kc.IsResourceNamespaced(gr.Resource)
+	isNamespaced, err := kc.IsResourceNamespaced(gr.Resource, apiVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	if isNamespaced && "secretsmanager.aws.upbound.io" != manifest.GroupVersionKind().Group {
+	if isNamespaced {
 		manifest.SetNamespace(namespace)
 	}
 
@@ -84,6 +83,7 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 	}
 
 	result, err := kc.client.Resource(gvr).Namespace(manifest.GetNamespace()).Get(context.TODO(), manifest.GetName(), metav1.GetOptions{})
+
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (kc *KubeClient) setChildren(resourceRefMap map[string]string, resource Res
 	return resource
 }
 
-func (kc *KubeClient) IsResourceNamespaced(resourceKind string) (bool, error) {
+func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion string) (bool, error) {
 	// This function currently does NOT consider different versions of a resource kind. That may cause issues as the scope of a resource might chance depending on the version.
 
 	// Retrieve the API resource list
@@ -134,15 +134,20 @@ func (kc *KubeClient) IsResourceNamespaced(resourceKind string) (bool, error) {
 		return false, err
 	}
 
+	// Trim version
+	apiVersion = strings.Split(apiVersion, "/")[0]
+
 	for _, apiResourceList := range apiResourceLists {
 		for _, apiResource := range apiResourceList.APIResources {
-			resourceKind = strings.ToLower(resourceKind)
-			if apiResource.Name == resourceKind || apiResource.SingularName == resourceKind {
-				return apiResource.Namespaced, nil
+			if apiResource.Group == apiVersion || apiVersion == "" {
+				resourceKind = strings.ToLower(resourceKind)
+				if apiResource.Name == resourceKind || apiResource.SingularName == resourceKind {
+					return apiResource.Namespaced, nil
+				}
 			}
+
 		}
 	}
-
 	// If the resource is not found, return an error or false depending on your needs
 	return false, fmt.Errorf("resource not found")
 }
