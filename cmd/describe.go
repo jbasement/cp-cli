@@ -4,6 +4,7 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -12,7 +13,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-var Namespace, Kubeconfig string
+var Namespace, Kubeconfig, Output string
 
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
@@ -30,10 +31,6 @@ Example:
 	`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// if err := someFunc(); err != nil {
-		// 	return err
-		// }
-		// return nil
 
 		if Kubeconfig == "" {
 			Kubeconfig = os.Getenv("KUBECONFIG")
@@ -42,7 +39,20 @@ Example:
 			Kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 		}
 
-		describe.Describe(args, Namespace, Kubeconfig)
+		root := describe.Describe(args, Namespace, Kubeconfig)
+
+		switch Output {
+		case "cli":
+			describe.PrintResourceTable(root)
+		case "graph":
+			printer := describe.NewGraphPrinter()
+			if err := printer.Print([]describe.Resource{root}); err != nil {
+				fmt.Printf("Error printing graph: %v\n", err)
+			}
+		default:
+			fmt.Println("Invalid output format. Please use 'cli' or 'graph'.")
+		}
+
 		return nil
 	},
 }
@@ -52,5 +62,6 @@ func init() {
 
 	describeCmd.Flags().StringVarP(&Namespace, "namespace", "n", "default", "k8s namespace")
 	describeCmd.Flags().StringVarP(&Kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
+	describeCmd.Flags().StringVarP(&Output, "output", "o", "cli", "Output format (cli or graph)")
 
 }

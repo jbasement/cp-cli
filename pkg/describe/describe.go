@@ -18,6 +18,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+type NodeState string
+
 type KubeClient struct {
 	client  *dynamic.DynamicClient
 	rmapper meta.RESTMapper
@@ -29,7 +31,7 @@ type Resource struct {
 	children []Resource
 }
 
-func Describe(args []string, namespace string, kubeconfig string) {
+func Describe(args []string, namespace string, kubeconfig string) Resource {
 	kubeClient, err := newKubeClient(kubeconfig)
 	if err != nil {
 		panic(err.Error())
@@ -44,7 +46,8 @@ func Describe(args []string, namespace string, kubeconfig string) {
 	}
 
 	root = kubeClient.getChildren(root)
-	printResourceHierarchy(root, 0)
+
+	return root
 }
 
 func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiVersion string, namespace string) (*unstructured.Unstructured, error) {
@@ -186,20 +189,6 @@ func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	}, nil
 }
 
-func printResourceHierarchy(resource Resource, indentLevel int) {
-	// Print the resource's manifest with proper indentation
-	indent := ""
-	for i := 0; i < indentLevel; i++ {
-		indent += "  " // Use two spaces for each level of indentation
-	}
-	fmt.Printf("%sResource Type: %s\n", indent, resource.manifest.GetKind())
-
-	// Recursively print child resources
-	for _, child := range resource.children {
-		printResourceHierarchy(child, indentLevel+1)
-	}
-}
-
 func getStringMapFromNestedField(obj unstructured.Unstructured, fields ...string) (map[string]string, bool, error) {
 	nestedField, found, err := unstructured.NestedStringMap(obj.Object, fields...)
 	if !found || err != nil {
@@ -236,4 +225,18 @@ func getSliceOfMapsFromNestedField(obj unstructured.Unstructured, fields ...stri
 	}
 
 	return result, true, nil
+}
+
+func printResourceHierarchy(resource Resource, indentLevel int) {
+	// Print the resource's manifest with proper indentation
+	indent := ""
+	for i := 0; i < indentLevel; i++ {
+		indent += "  " // Use two spaces for each level of indentation
+	}
+	fmt.Printf("%sResource Type: %s\n", indent, resource.manifest.GetKind())
+
+	// Recursively print child resources
+	for _, child := range resource.children {
+		printResourceHierarchy(child, indentLevel+1)
+	}
 }

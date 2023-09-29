@@ -1,1 +1,4 @@
 .kube/*
+output.png
+go.sum
+go.mod
