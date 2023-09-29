@@ -17,8 +17,18 @@ var Namespace, Kubeconfig string
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
 	Use:   "describe",
-	Short: "Describe a Claim/ Composite resource and all its childs. cp-cli describe <resource-type> <resource-name>",
-	Args:  cobra.ExactArgs(2),
+	Short: "Describe a Claim/ Composite resource and all its children.",
+	Long: `Describe a Claim/ Composite resource and all its children.
+
+Command Usage:
+	cp-cli describe TYPE[.GROUP] NAME [-n| --namespace NAMESPACE]
+
+Example: 
+	cp-cli describe objectstorage my-object-storage 
+	cp-cli describe xobjectstorage.my-fqdn.cloud/v1alpha1 my-object-storage -n my-namespace 
+
+	`,
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// if err := someFunc(); err != nil {
 		// 	return err
