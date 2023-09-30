@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/discovery/cached/disk"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -21,9 +23,10 @@ import (
 type NodeState string
 
 type KubeClient struct {
-	client  *dynamic.DynamicClient
-	rmapper meta.RESTMapper
-	dc      *discovery.DiscoveryClient
+	dclient   *dynamic.DynamicClient
+	clientset *kubernetes.Clientset
+	rmapper   meta.RESTMapper
+	dc        *discovery.DiscoveryClient
 }
 
 func GetResource(args []string, namespace string, kubeconfig string) Resource {
@@ -76,7 +79,7 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 		return nil, err
 	}
 
-	result, err := kc.client.Resource(gvr).Namespace(manifest.GetNamespace()).Get(context.TODO(), manifest.GetName(), metav1.GetOptions{})
+	result, err := kc.dclient.Resource(gvr).Namespace(manifest.GetNamespace()).Get(context.TODO(), manifest.GetName(), metav1.GetOptions{})
 
 	if err != nil {
 		return nil, err
@@ -103,14 +106,19 @@ func (kc *KubeClient) setChildren(resourceRefMap map[string]string, resource Res
 	kind := resourceRefMap["kind"]
 	apiVersion := resourceRefMap["apiVersion"]
 
+	// Get manifest
 	u, err := kc.getManifest(name, kind, apiVersion, "default")
 	if err != nil {
 		panic(err.Error())
 	}
 
+	// Get event
+	event := kc.getEvent(name, kind, apiVersion, "default")
+
 	// Set child
 	child := Resource{
 		manifest: u,
+		event:    event,
 	}
 	// Get children of children
 	child = kc.getChildren(child)
@@ -146,6 +154,25 @@ func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion strin
 	return false, fmt.Errorf("resource not found")
 }
 
+func (kc *KubeClient) getEvent(resourceName string, resourceKind string, apiVersion string, namespace string) string {
+	// List events for the resource.
+	eventList, err := kc.clientset.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{
+		FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s,involvedObject.apiVersion=%s", resourceName, resourceKind, apiVersion),
+	})
+
+	if err != nil {
+		log.Fatalf("Error listing events: %v", err)
+	}
+
+	// Check if there are any events.
+	if len(eventList.Items) == 0 {
+		return ""
+	}
+
+	// Get the latest event.
+	latestEvent := eventList.Items[0]
+	return latestEvent.Message
+}
 func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	// Initialize a Kubernetes client.
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -153,15 +180,20 @@ func newKubeClient(kubeconfig string) (*KubeClient, error) {
 		return nil, err
 	}
 
-	client, err := dynamic.NewForConfig(config)
+	// Use to get custom resources
+	dclient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
 
+	// Use to discover API resources
 	dc, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return nil, err
 	}
+
+	// Use to get events
+	clientset, _ := kubernetes.NewForConfig(config)
 
 	discoveryCacheDir := filepath.Join("./.kube", "cache", "discovery")
 	httpCacheDir := filepath.Join("./.kube", "http-cache")
@@ -178,9 +210,10 @@ func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	rMapper := restmapper.NewShortcutExpander(mapper, discoveryClient)
 
 	return &KubeClient{
-		client:  client,
-		rmapper: rMapper,
-		dc:      dc,
+		dclient:   dclient,
+		clientset: clientset,
+		rmapper:   rMapper,
+		dc:        dc,
 	}, nil
 }
 

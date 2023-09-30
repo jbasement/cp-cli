@@ -14,6 +14,7 @@ import (
 )
 
 var Namespace, Kubeconfig, Output string
+var Fields []string
 
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
@@ -31,7 +32,6 @@ Example:
 	`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		if Kubeconfig == "" {
 			Kubeconfig = os.Getenv("KUBECONFIG")
 		}
@@ -41,11 +41,13 @@ Example:
 
 		// add args and flag parser here
 
+		// Get a resource object. Contains k8s resource and all its children, also as resource.
 		root := resource.GetResource(args, Namespace, Kubeconfig)
 
+		// Print out resource
 		switch Output {
 		case "cli":
-			resource.PrintResourceTable(root)
+			resource.PrintResourceTable(root, Fields)
 		case "graph":
 			printer := resource.NewGraphPrinter()
 			if err := printer.Print([]resource.Resource{root}); err != nil {
@@ -65,5 +67,6 @@ func init() {
 	describeCmd.Flags().StringVarP(&Namespace, "namespace", "n", "default", "k8s namespace")
 	describeCmd.Flags().StringVarP(&Kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
 	describeCmd.Flags().StringVarP(&Output, "output", "o", "cli", "Output format (cli or graph)")
+	describeCmd.Flags().StringSliceVar(&Fields, "fields", []string{"parent", "kind", "name", "synced", "ready", "message"}, "Comma-separated list of fields")
 
 }
