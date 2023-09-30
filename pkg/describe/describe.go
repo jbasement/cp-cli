@@ -133,7 +133,7 @@ func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion strin
 		return false, err
 	}
 
-	// Trim version
+	// Trim version if set
 	apiVersion = strings.Split(apiVersion, "/")[0]
 
 	for _, apiResourceList := range apiResourceLists {
@@ -225,18 +225,4 @@ func getSliceOfMapsFromNestedField(obj unstructured.Unstructured, fields ...stri
 	}
 
 	return result, true, nil
-}
-
-func printResourceHierarchy(resource Resource, indentLevel int) {
-	// Print the resource's manifest with proper indentation
-	indent := ""
-	for i := 0; i < indentLevel; i++ {
-		indent += "  " // Use two spaces for each level of indentation
-	}
-	fmt.Printf("%sResource Type: %s\n", indent, resource.manifest.GetKind())
-
-	// Recursively print child resources
-	for _, child := range resource.children {
-		printResourceHierarchy(child, indentLevel+1)
-	}
 }

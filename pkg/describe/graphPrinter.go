@@ -37,20 +37,19 @@ func (p *GraphPrinter) printResourceGraph(g *dot.Graph, r Resource) {
 }
 
 func getResourceID(r Resource) string {
-	name := r.manifest.GetName()
+	name := r.GetName()
 	if len(name) > 24 {
 		name = name[:12] + "..." + name[len(name)-12:]
 	}
-	kind := r.manifest.GetKind()
+	kind := r.GetKind()
 	return fmt.Sprintf("%s-%s", kind, name)
 }
 
 func getResourceLabel(r Resource) string {
-	u := r.manifest
-	labelKind := u.GetKind()
-	labelName := u.GetName()
+	labelKind := r.GetKind()
+	labelName := r.GetName()
 	if len(labelName) > 24 {
 		labelName = labelName[:12] + "..." + labelName[len(labelName)-12:]
 	}
-	return fmt.Sprintf("%s\n%s\nPenisNase", labelKind, labelName)
+	return fmt.Sprintf("%s\n%s", labelKind, labelName)
 }
