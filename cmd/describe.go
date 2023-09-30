@@ -50,14 +50,16 @@ Example:
 		// Print out resource
 		switch Output {
 		case "cli":
-			resource.PrintResourceTable(*root, Fields)
+			if err := resource.PrintResourceTable(*root, Fields); err != nil {
+				return fmt.Errorf("Error printing CLI table: %w\n", err)
+			}
 		case "graph":
 			printer := resource.NewGraphPrinter()
 			if err := printer.Print([]resource.Resource{*root}); err != nil {
-				fmt.Printf("Error printing graph: %v\n", err)
+				return fmt.Errorf("Error printing graph: %w\n", err)
 			}
 		default:
-			fmt.Println("Invalid output format. Please use 'cli' or 'graph'.")
+			return fmt.Errorf("Invalid output format. Please use 'cli' or 'graph'.")
 		}
 
 		return nil

@@ -88,36 +88,36 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 	return result, nil
 }
 
-func (kc *KubeClient) getChildren(resource Resource) (Resource, error) {
-	if resourceRefMap, found, err := getStringMapFromNestedField(*resource.manifest, "spec", "resourceRef"); found && err == nil {
-		resource, err = kc.setChildren(resourceRefMap, resource)
-	} else if resourceRefs, found, err := getSliceOfMapsFromNestedField(*resource.manifest, "spec", "resourceRefs"); found && err == nil {
+func (kc *KubeClient) getChildren(r Resource) (Resource, error) {
+	if resourceRefMap, found, err := getStringMapFromNestedField(*r.manifest, "spec", "resourceRef"); found && err == nil {
+		r, err = kc.setChildren(resourceRefMap, r)
+	} else if resourceRefs, found, err := getSliceOfMapsFromNestedField(*r.manifest, "spec", "resourceRefs"); found && err == nil {
 		for _, resourceRefMap := range resourceRefs {
-			resource, err = kc.setChildren(resourceRefMap, resource)
+			r, err = kc.setChildren(resourceRefMap, r)
 		}
 	} else if err != nil {
-		return resource, fmt.Errorf("Couldn't get children of resource -> %w", err)
+		return r, fmt.Errorf("Couldn't get children of resource -> %w", err)
 	}
 
-	return resource, nil
+	return r, nil
 }
 
-func (kc *KubeClient) setChildren(resourceRefMap map[string]string, resource Resource) (Resource, error) {
+func (kc *KubeClient) setChildren(resourceRefMap map[string]string, r Resource) (Resource, error) {
 	// Get info about child
 	name := resourceRefMap["name"]
 	kind := resourceRefMap["kind"]
 	apiVersion := resourceRefMap["apiVersion"]
 
 	// Get manifest. Assumes children is in same namespace as claim if resouce is namespaced.
-	u, err := kc.getManifest(name, kind, apiVersion, resource.GetNamespace())
+	u, err := kc.getManifest(name, kind, apiVersion, r.GetNamespace())
 	if err != nil {
-		return resource, fmt.Errorf("Couldn't get manifest of children -> %w", err)
+		return r, fmt.Errorf("Couldn't get manifest of children -> %w", err)
 	}
 
 	// Get event
-	event, err := kc.getEvent(name, kind, apiVersion, resource.GetNamespace())
+	event, err := kc.getEvent(name, kind, apiVersion, r.GetNamespace())
 	if err != nil {
-		return resource, fmt.Errorf("Couldn't get event for resource %s -> %w", name+kind, err)
+		return r, fmt.Errorf("Couldn't get event for resource %s -> %w", name+kind, err)
 	}
 	// Set child
 	child := Resource{
@@ -127,11 +127,11 @@ func (kc *KubeClient) setChildren(resourceRefMap map[string]string, resource Res
 	// Get children of children
 	child, err = kc.getChildren(child)
 	if err != nil {
-		return resource, fmt.Errorf("Couldn't get children of children -> %w", err)
+		return r, fmt.Errorf("Couldn't get children of children -> %w", err)
 	}
-	resource.children = append(resource.children, child)
+	r.children = append(r.children, child)
 
-	return resource, nil
+	return r, nil
 }
 
 func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion string) (bool, error) {
