@@ -1,4 +1,4 @@
-package describe
+package resource
 
 import (
 	"context"
@@ -26,12 +26,7 @@ type KubeClient struct {
 	dc      *discovery.DiscoveryClient
 }
 
-type Resource struct {
-	manifest *unstructured.Unstructured
-	children []Resource
-}
-
-func Describe(args []string, namespace string, kubeconfig string) Resource {
+func GetResource(args []string, namespace string, kubeconfig string) Resource {
 	kubeClient, err := newKubeClient(kubeconfig)
 	if err != nil {
 		panic(err.Error())

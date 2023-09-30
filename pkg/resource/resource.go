@@ -1,4 +1,11 @@
-package describe
+package resource
+
+import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+type Resource struct {
+	manifest *unstructured.Unstructured
+	children []Resource
+}
 
 func (r Resource) GetKind() string {
 	return r.manifest.GetKind()

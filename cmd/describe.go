@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jbasement/cp-cli/pkg/describe"
+	"github.com/jbasement/cp-cli/pkg/resource"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
 )
@@ -39,14 +39,16 @@ Example:
 			Kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 		}
 
-		root := describe.Describe(args, Namespace, Kubeconfig)
+		// add args and flag parser here
+
+		root := resource.GetResource(args, Namespace, Kubeconfig)
 
 		switch Output {
 		case "cli":
-			describe.PrintResourceTable(root)
+			resource.PrintResourceTable(root)
 		case "graph":
-			printer := describe.NewGraphPrinter()
-			if err := printer.Print([]describe.Resource{root}); err != nil {
+			printer := resource.NewGraphPrinter()
+			if err := printer.Print([]resource.Resource{root}); err != nil {
 				fmt.Printf("Error printing graph: %v\n", err)
 			}
 		default:
