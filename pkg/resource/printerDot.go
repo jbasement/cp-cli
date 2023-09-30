@@ -3,9 +3,11 @@ package resource
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/emicklei/dot"
+	"github.com/goccy/go-graphviz"
 )
 
 type GraphPrinter struct {
@@ -21,7 +23,18 @@ func (p *GraphPrinter) Print(resources []Resource) error {
 	for _, r := range resources {
 		p.printResourceGraph(g, r)
 	}
-	fmt.Fprintln(p.writer, g.String())
+
+	// save graph to file
+	g1 := graphviz.New()
+	dotBytes := []byte(g.String())
+	graph, err := graphviz.ParseBytes(dotBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := g1.RenderFilename(graph, graphviz.PNG, "graph.png"); err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
 
