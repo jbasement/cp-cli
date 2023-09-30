@@ -42,15 +42,18 @@ Example:
 		// add args and flag parser here
 
 		// Get a resource object. Contains k8s resource and all its children, also as resource.
-		root := resource.GetResource(args, Namespace, Kubeconfig)
+		root, err := resource.GetResource(args, Namespace, Kubeconfig)
+		if err != nil {
+			return fmt.Errorf("Error getting resource -> %w", err)
+		}
 
 		// Print out resource
 		switch Output {
 		case "cli":
-			resource.PrintResourceTable(root, Fields)
+			resource.PrintResourceTable(*root, Fields)
 		case "graph":
 			printer := resource.NewGraphPrinter()
-			if err := printer.Print([]resource.Resource{root}); err != nil {
+			if err := printer.Print([]resource.Resource{*root}); err != nil {
 				fmt.Printf("Error printing graph: %v\n", err)
 			}
 		default:

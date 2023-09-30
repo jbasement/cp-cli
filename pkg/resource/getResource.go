@@ -3,7 +3,6 @@ package resource
 import (
 	"context"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 	"time"
@@ -29,10 +28,10 @@ type KubeClient struct {
 	dc        *discovery.DiscoveryClient
 }
 
-func GetResource(args []string, namespace string, kubeconfig string) Resource {
+func GetResource(args []string, namespace string, kubeconfig string) (*Resource, error) {
 	kubeClient, err := newKubeClient(kubeconfig)
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("Couldn't init kubeclient -> %w", err)
 	}
 
 	root := Resource{
@@ -40,12 +39,15 @@ func GetResource(args []string, namespace string, kubeconfig string) Resource {
 	}
 	root.manifest, err = kubeClient.getManifest(args[1], args[0], "", namespace)
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("Couldn't get root resource manifest -> %w", err)
 	}
 
-	root = kubeClient.getChildren(root)
+	root, err = kubeClient.getChildren(root)
+	if err != nil {
+		return &root, fmt.Errorf("Couldn't get children of root resource -> %w", err)
+	}
 
-	return root
+	return &root, nil
 }
 
 func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiVersion string, namespace string) (*unstructured.Unstructured, error) {
@@ -63,9 +65,8 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 
 	isNamespaced, err := kc.IsResourceNamespaced(gr.Resource, apiVersion)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Couldn't detect if resource is namespaced -> %w", err)
 	}
-
 	if isNamespaced {
 		manifest.SetNamespace(namespace)
 	}
@@ -76,55 +77,61 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 		Resource: manifest.GetKind(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Couldn't build GVR schema for resource -> %w", err)
 	}
 
 	result, err := kc.dclient.Resource(gvr).Namespace(manifest.GetNamespace()).Get(context.TODO(), manifest.GetName(), metav1.GetOptions{})
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Couldn't get resource manifest from KubeAPI -> %w", err)
 	}
 
 	return result, nil
 }
 
-func (kc *KubeClient) getChildren(resource Resource) Resource {
+func (kc *KubeClient) getChildren(resource Resource) (Resource, error) {
 	if resourceRefMap, found, err := getStringMapFromNestedField(*resource.manifest, "spec", "resourceRef"); found && err == nil {
-		resource = kc.setChildren(resourceRefMap, resource)
+		resource, err = kc.setChildren(resourceRefMap, resource)
 	} else if resourceRefs, found, err := getSliceOfMapsFromNestedField(*resource.manifest, "spec", "resourceRefs"); found && err == nil {
 		for _, resourceRefMap := range resourceRefs {
-			resource = kc.setChildren(resourceRefMap, resource)
+			resource, err = kc.setChildren(resourceRefMap, resource)
 		}
+	} else if err != nil {
+		return resource, fmt.Errorf("Couldn't get children of resource -> %w", err)
 	}
 
-	return resource
+	return resource, nil
 }
 
-func (kc *KubeClient) setChildren(resourceRefMap map[string]string, resource Resource) Resource {
+func (kc *KubeClient) setChildren(resourceRefMap map[string]string, resource Resource) (Resource, error) {
 	// Get info about child
 	name := resourceRefMap["name"]
 	kind := resourceRefMap["kind"]
 	apiVersion := resourceRefMap["apiVersion"]
 
-	// Get manifest
-	u, err := kc.getManifest(name, kind, apiVersion, "default")
+	// Get manifest. Assumes children is in same namespace as claim if resouce is namespaced.
+	u, err := kc.getManifest(name, kind, apiVersion, resource.GetNamespace())
 	if err != nil {
-		panic(err.Error())
+		return resource, fmt.Errorf("Couldn't get manifest of children -> %w", err)
 	}
 
 	// Get event
-	event := kc.getEvent(name, kind, apiVersion, "default")
-
+	event, err := kc.getEvent(name, kind, apiVersion, resource.GetNamespace())
+	if err != nil {
+		return resource, fmt.Errorf("Couldn't get event for resource %s -> %w", name+kind, err)
+	}
 	// Set child
 	child := Resource{
 		manifest: u,
 		event:    event,
 	}
 	// Get children of children
-	child = kc.getChildren(child)
+	child, err = kc.getChildren(child)
+	if err != nil {
+		return resource, fmt.Errorf("Couldn't get children of children -> %w", err)
+	}
 	resource.children = append(resource.children, child)
 
-	return resource
+	return resource, nil
 }
 
 func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion string) (bool, error) {
@@ -133,7 +140,7 @@ func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion strin
 	// Retrieve the API resource list
 	apiResourceLists, err := kc.dc.ServerPreferredResources()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Couldn't get API resources of k8s API server -> %w", err)
 	}
 
 	// Trim version if set
@@ -150,29 +157,28 @@ func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion strin
 
 		}
 	}
-	// If the resource is not found, return an error or false depending on your needs
-	return false, fmt.Errorf("resource not found")
+	return false, fmt.Errorf("resource not found in API server -> Kind:%s ApiVersion %s", resourceKind, apiVersion)
 }
 
-func (kc *KubeClient) getEvent(resourceName string, resourceKind string, apiVersion string, namespace string) string {
+func (kc *KubeClient) getEvent(resourceName string, resourceKind string, apiVersion string, namespace string) (string, error) {
 	// List events for the resource.
 	eventList, err := kc.clientset.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s,involvedObject.apiVersion=%s", resourceName, resourceKind, apiVersion),
 	})
-
 	if err != nil {
-		log.Fatalf("Error listing events: %v", err)
+		return "", fmt.Errorf("Couldn't get event list for resource %s -> %w", resourceKind+resourceName, err)
 	}
 
 	// Check if there are any events.
 	if len(eventList.Items) == 0 {
-		return ""
+		return "", nil
 	}
 
 	// Get the latest event.
 	latestEvent := eventList.Items[0]
-	return latestEvent.Message
+	return latestEvent.Message, nil
 }
+
 func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	// Initialize a Kubernetes client.
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)

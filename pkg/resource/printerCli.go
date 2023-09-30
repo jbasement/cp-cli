@@ -35,6 +35,9 @@ func printResourceAndChildren(table *tablewriter.Table, fields []string, r Resou
 		if field == "kind" {
 			tableRow[i] = r.GetKind()
 		}
+		if field == "namespace" {
+			tableRow[i] = r.GetNamespace()
+		}
 		if field == "apiversion" {
 			tableRow[i] = r.GetApiVersion()
 		}
