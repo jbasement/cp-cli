@@ -32,15 +32,15 @@ Example:
 	`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		// add proper args and flag parser here
+
 		if Kubeconfig == "" {
 			Kubeconfig = os.Getenv("KUBECONFIG")
 		}
 		if Kubeconfig == "" {
 			Kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 		}
-
-		// add args and flag parser here
-
 		// Get a resource object. Contains k8s resource and all its children, also as resource.
 		root, err := resource.GetResource(args, Namespace, Kubeconfig)
 		if err != nil {
@@ -72,6 +72,6 @@ func init() {
 	describeCmd.Flags().StringVarP(&Namespace, "namespace", "n", "default", "k8s namespace")
 	describeCmd.Flags().StringVarP(&Kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
 	describeCmd.Flags().StringVarP(&Output, "output", "o", "cli", "Output format (cli or graph)")
-	describeCmd.Flags().StringSliceVar(&Fields, "fields", []string{"parent", "kind", "name", "synced", "ready", "message"}, "Comma-separated list of fields")
+	describeCmd.Flags().StringSliceVarP(&Fields, "fields", "f", []string{"parent", "kind", "name", "synced", "ready"}, "Comma-separated list of fields. Available fields are [name, kind, namespace, apiversion, synced, ready, message, event, parent(only affects CLI output)]")
 
 }
