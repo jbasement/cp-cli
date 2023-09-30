@@ -19,8 +19,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type NodeState string
-
 type KubeClient struct {
 	dclient   *dynamic.DynamicClient
 	clientset *kubernetes.Clientset
