@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/emicklei/dot"
 	"github.com/goccy/go-graphviz"
@@ -18,13 +19,11 @@ func NewGraphPrinter() *GraphPrinter {
 	return &GraphPrinter{writer: os.Stdout}
 }
 
-func (p *GraphPrinter) Print(resources []Resource) error {
+func (p *GraphPrinter) Print(resource Resource, fields []string) error {
 	g := dot.NewGraph(dot.Undirected)
-	for _, r := range resources {
-		p.printResourceGraph(g, r)
-	}
+	p.printResourceGraph(g, resource, fields)
 
-	// save graph to file
+	// Save graph to file
 	g1 := graphviz.New()
 	dotBytes := []byte(g.String())
 	graph, err := graphviz.ParseBytes(dotBytes)
@@ -38,13 +37,13 @@ func (p *GraphPrinter) Print(resources []Resource) error {
 	return nil
 }
 
-func (p *GraphPrinter) printResourceGraph(g *dot.Graph, r Resource) {
+func (p *GraphPrinter) printResourceGraph(g *dot.Graph, r Resource, fields []string) {
 	node := g.Node(getResourceID(r))
-	node.Label(getResourceLabel(r))
+	node.Label(getResourceLabel(r, fields))
 	node.Attr("penwidth", "2")
 
 	for _, child := range r.children {
-		p.printResourceGraph(g, child)
+		p.printResourceGraph(g, child, fields)
 		g.Edge(node, g.Node(getResourceID(child)))
 	}
 }
@@ -58,11 +57,35 @@ func getResourceID(r Resource) string {
 	return fmt.Sprintf("%s-%s", kind, name)
 }
 
-func getResourceLabel(r Resource) string {
-	labelKind := r.GetKind()
-	labelName := r.GetName()
-	if len(labelName) > 24 {
-		labelName = labelName[:12] + "..." + labelName[len(labelName)-12:]
+func getResourceLabel(r Resource, fields []string) string {
+
+	var label = make([]string, len(fields))
+	for i, field := range fields {
+		if field == "name" {
+			label[i] = field + ": " + r.GetName()
+		}
+		if field == "kind" {
+			label[i] = field + ": " + r.GetKind()
+		}
+		if field == "namespace" {
+			label[i] = field + ": " + r.GetNamespace()
+		}
+		if field == "apiversion" {
+			label[i] = field + ": " + r.GetApiVersion()
+		}
+		if field == "synced" {
+			label[i] = field + ": " + r.GetConditionStatus("Synced")
+		}
+		if field == "ready" {
+			label[i] = field + ": " + r.GetConditionStatus("Ready")
+		}
+		if field == "message" {
+			label[i] = field + ": " + r.GetConditionMessage()
+		}
+		if field == "event" {
+			label[i] = field + ": " + r.GetEvent()
+		}
 	}
-	return fmt.Sprintf("%s\n%s", labelKind, labelName)
+
+	return strings.Join(label, "\n")
 }

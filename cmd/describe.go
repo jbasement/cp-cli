@@ -55,7 +55,7 @@ Example:
 			}
 		case "graph":
 			printer := resource.NewGraphPrinter()
-			if err := printer.Print([]resource.Resource{*root}); err != nil {
+			if err := printer.Print(*root, Fields); err != nil {
 				return fmt.Errorf("Error printing graph: %w\n", err)
 			}
 		default:
