@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -28,11 +27,11 @@ func (p *GraphPrinter) Print(resource Resource, fields []string, path string) er
 	dotBytes := []byte(g.String())
 	graph, err := graphviz.ParseBytes(dotBytes)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Couldn't create PNG -> %w", err)
 	}
 
 	if err := g1.RenderFilename(graph, graphviz.PNG, path); err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Couldn't save PNG to path %s -> %w", path, err)
 	}
 	return nil
 }

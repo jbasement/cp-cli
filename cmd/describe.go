@@ -34,7 +34,6 @@ Example:
 	Args:         cobra.ExactArgs(2),
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Check args and flags
 		// Check if fields are valid
 		for _, field := range Fields {
 			if !slices.Contains(AllowedFields, field) {
@@ -53,6 +52,7 @@ Example:
 		if Kubeconfig == "" {
 			Kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 		}
+
 		// Get a resource object. Contains k8s resource and all its children, also as resource.
 		root, err := resource.GetResource(args, Namespace, Kubeconfig)
 		if err != nil {
