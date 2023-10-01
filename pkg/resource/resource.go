@@ -54,3 +54,11 @@ func (r Resource) GetConditionMessage() string {
 func (r Resource) GetEvent() string {
 	return r.event
 }
+
+func (r Resource) GotChildren() bool {
+	if len(r.children) > 0 {
+		return true
+	} else {
+		return false
+	}
+}

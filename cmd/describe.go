@@ -14,9 +14,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-var Namespace, Kubeconfig, Output, GraphPath string
-var Fields, AllowedFields, AllowedOutput []string
-
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
 	Use:   "describe",
@@ -35,39 +32,39 @@ Example:
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if fields are valid
-		for _, field := range Fields {
-			if !slices.Contains(AllowedFields, field) {
-				return fmt.Errorf("Invalid field set: %s\nField has to be one of: %s", field, AllowedFields)
+		for _, field := range fields {
+			if !slices.Contains(allowedFields, field) {
+				return fmt.Errorf("Invalid field set: %s\nField has to be one of: %s", field, allowedFields)
 			}
 		}
 
 		// Check if output format is valid
-		if !slices.Contains(AllowedOutput, Output) {
-			return fmt.Errorf("Invalid ouput set: %s\nOutput has to be one of: %s", Output, AllowedOutput)
+		if !slices.Contains(allowedOutput, output) {
+			return fmt.Errorf("Invalid ouput set: %s\nOutput has to be one of: %s", output, allowedOutput)
 		}
 
-		if Kubeconfig == "" {
-			Kubeconfig = os.Getenv("KUBECONFIG")
+		if kubeconfig == "" {
+			kubeconfig = os.Getenv("KUBECONFIG")
 		}
-		if Kubeconfig == "" {
-			Kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
+		if kubeconfig == "" {
+			kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 		}
 
-		// Get a resource object. Contains k8s resource and all its children, also as resource.
-		root, err := resource.GetResource(args, Namespace, Kubeconfig)
+		// Get resource object. Contains k8s resource and all its children, also as resource.
+		root, err := resource.GetResource(args, namepace, kubeconfig)
 		if err != nil {
 			return fmt.Errorf("Error getting resource -> %w", err)
 		}
 
 		// Print out resource
-		switch Output {
+		switch output {
 		case "cli":
-			if err := resource.PrintResourceTable(*root, Fields); err != nil {
+			if err := resource.PrintResourceTable(*root, fields); err != nil {
 				return fmt.Errorf("Error printing CLI table: %w\n", err)
 			}
 		case "graph":
 			printer := resource.NewGraphPrinter()
-			if err := printer.Print(*root, Fields, GraphPath); err != nil {
+			if err := printer.Print(*root, fields, graphPath); err != nil {
 				return fmt.Errorf("Error printing graph: %w\n", err)
 			}
 		}
@@ -77,16 +74,16 @@ Example:
 }
 
 func init() {
-	AllowedFields = []string{"parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event"}
-	fieldFlagDescription := fmt.Sprintf("Comma-separated list of fields. Available fields are %s", AllowedFields)
-	AllowedOutput = []string{"cli", "graph"}
-	outputFlagDescription := fmt.Sprintf("Output format of resource. Must be one of %s", AllowedOutput)
+	allowedFields = []string{"parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event"}
+	fieldFlagDescription := fmt.Sprintf("Comma-separated list of fields. Available fields are %s", allowedFields)
+	allowedOutput = []string{"cli", "graph"}
+	outputFlagDescription := fmt.Sprintf("Output format of resource. Must be one of %s", allowedOutput)
 
 	rootCmd.AddCommand(describeCmd)
 
-	describeCmd.Flags().StringVarP(&Namespace, "namespace", "n", "default", "k8s namespace")
-	describeCmd.Flags().StringVarP(&Kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
-	describeCmd.Flags().StringVarP(&Output, "output", "o", "cli", outputFlagDescription)
-	describeCmd.Flags().StringSliceVarP(&Fields, "fields", "f", []string{"parent", "kind", "name", "synced", "ready"}, fieldFlagDescription)
-	describeCmd.Flags().StringVarP(&GraphPath, "path", "p", "./graph.png", "Set output path and filename for graph PNG. Must be absolute path and filename must end on '.png'")
+	describeCmd.Flags().StringVarP(&namepace, "namespace", "n", "default", "k8s namespace")
+	describeCmd.Flags().StringVarP(&kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
+	describeCmd.Flags().StringVarP(&output, "output", "o", "cli", outputFlagDescription)
+	describeCmd.Flags().StringSliceVarP(&fields, "fields", "f", []string{"parent", "kind", "name", "synced", "ready"}, fieldFlagDescription)
+	describeCmd.Flags().StringVarP(&graphPath, "path", "p", "./graph.png", "Set output path and filename for graph PNG. Must be absolute path and filename must end on '.png'")
 }
