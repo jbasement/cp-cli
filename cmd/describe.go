@@ -10,11 +10,12 @@ import (
 
 	"github.com/jbasement/cp-cli/pkg/resource"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 	"k8s.io/client-go/util/homedir"
 )
 
-var Namespace, Kubeconfig, Output string
-var Fields []string
+var Namespace, Kubeconfig, Output, GraphPath string
+var Fields, AllowedFields, AllowedOutput []string
 
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
@@ -27,13 +28,24 @@ Command Usage:
 
 Example: 
 	cp-cli describe objectstorage my-object-storage 
-	cp-cli describe xobjectstorage.my-fqdn.cloud/v1alpha1 my-object-storage -n my-namespace 
+	cp-cli describe xobjectstorage.my-fqdn.cloud/v1alpha1 my-object-storage -n my-namespace -o graph -f name,kind,ready,synced -p ./myGraph.png
 
 	`,
-	Args: cobra.ExactArgs(2),
+	Args:         cobra.ExactArgs(2),
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Check args and flags
+		// Check if fields are valid
+		for _, field := range Fields {
+			if !slices.Contains(AllowedFields, field) {
+				return fmt.Errorf("Invalid field set: %s\nField has to be one of: %s", field, AllowedFields)
+			}
+		}
 
-		// add proper args and flag parser here
+		// Check if output format is valid
+		if !slices.Contains(AllowedOutput, Output) {
+			return fmt.Errorf("Invalid ouput set: %s\nOutput has to be one of: %s", Output, AllowedOutput)
+		}
 
 		if Kubeconfig == "" {
 			Kubeconfig = os.Getenv("KUBECONFIG")
@@ -55,11 +67,9 @@ Example:
 			}
 		case "graph":
 			printer := resource.NewGraphPrinter()
-			if err := printer.Print(*root, Fields); err != nil {
+			if err := printer.Print(*root, Fields, GraphPath); err != nil {
 				return fmt.Errorf("Error printing graph: %w\n", err)
 			}
-		default:
-			return fmt.Errorf("Invalid output format. Please use 'cli' or 'graph'.")
 		}
 
 		return nil
@@ -67,11 +77,16 @@ Example:
 }
 
 func init() {
+	AllowedFields = []string{"parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event"}
+	fieldFlagDescription := fmt.Sprintf("Comma-separated list of fields. Available fields are %s", AllowedFields)
+	AllowedOutput = []string{"cli", "graph"}
+	outputFlagDescription := fmt.Sprintf("Output format of resource. Must be one of %s", AllowedOutput)
+
 	rootCmd.AddCommand(describeCmd)
 
 	describeCmd.Flags().StringVarP(&Namespace, "namespace", "n", "default", "k8s namespace")
 	describeCmd.Flags().StringVarP(&Kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
-	describeCmd.Flags().StringVarP(&Output, "output", "o", "cli", "Output format (cli or graph)")
-	describeCmd.Flags().StringSliceVarP(&Fields, "fields", "f", []string{"parent", "kind", "name", "synced", "ready"}, "Comma-separated list of fields. Available fields are [name, kind, namespace, apiversion, synced, ready, message, event, parent(only affects CLI output)]")
-
+	describeCmd.Flags().StringVarP(&Output, "output", "o", "cli", outputFlagDescription)
+	describeCmd.Flags().StringSliceVarP(&Fields, "fields", "f", []string{"parent", "kind", "name", "synced", "ready"}, fieldFlagDescription)
+	describeCmd.Flags().StringVarP(&GraphPath, "path", "p", "./graph.png", "Set output path and filename for graph PNG. Must be absolute path and filename must end on '.png'")
 }

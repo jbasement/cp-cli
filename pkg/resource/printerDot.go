@@ -19,7 +19,7 @@ func NewGraphPrinter() *GraphPrinter {
 	return &GraphPrinter{writer: os.Stdout}
 }
 
-func (p *GraphPrinter) Print(resource Resource, fields []string) error {
+func (p *GraphPrinter) Print(resource Resource, fields []string, path string) error {
 	g := dot.NewGraph(dot.Undirected)
 	p.printResourceGraph(g, resource, fields)
 
@@ -31,7 +31,7 @@ func (p *GraphPrinter) Print(resource Resource, fields []string) error {
 		log.Fatal(err)
 	}
 
-	if err := g1.RenderFilename(graph, graphviz.PNG, "graph.png"); err != nil {
+	if err := g1.RenderFilename(graph, graphviz.PNG, path); err != nil {
 		log.Fatal(err)
 	}
 	return nil
