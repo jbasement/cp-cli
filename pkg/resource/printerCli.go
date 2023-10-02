@@ -12,7 +12,6 @@ func PrintResourceTable(rootResource Resource, fields []string) error {
 	table := tablewriter.NewWriter(os.Stdout)
 
 	table.SetHeader(fields)
-	table.SetColWidth(50)
 	if err := printResourceAndChildren(table, fields, rootResource, ""); err != nil {
 		return fmt.Errorf("Error getting resource field %w\n", err)
 	}
