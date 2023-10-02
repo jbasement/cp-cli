@@ -34,7 +34,12 @@ The diagnose command takes a Composite Resource or Claim resource and name of th
 1. `cp-cli diagnose objectstorage my-object-storage`
 2. `cp-cli diagnose objectstorage my-object-storage -n my-namespace`
 
+# TODOs
+There are obviously still a lot of todos, as this was built as a POC and out of curiosity. Things to add
 
+1. Testing
+2. Logging
+3. Better error handling
 
 # Reference
 cp-cli has been inspired by other projects:
