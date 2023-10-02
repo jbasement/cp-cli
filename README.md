@@ -18,7 +18,6 @@ The describe command takes a Composite Resource or Claim resource and name of th
 
 **Example usage:**
 1. `cp-cli describe objectstorage my-object-storage`
-or
 2. `cp-cli describe objectstorage my-object-storage -f name,kind,apiversion -o graph`
 
 ## diagnose
@@ -33,7 +32,6 @@ The diagnose command takes a Composite Resource or Claim resource and name of th
 
 **Example usage:**
 1. `cp-cli diagnose objectstorage my-object-storage`
-or
 2. `cp-cli diagnose objectstorage my-object-storage -n my-namespace`
 
 
