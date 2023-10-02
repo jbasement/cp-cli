@@ -21,7 +21,7 @@ The describe command takes a Composite Resource or Claim resource and name of th
 2. `cp-cli describe objectstorage my-object-storage -f name,kind,apiversion -o graph`
 
 ## diagnose
-The diagnose command takes a Composite Resource or Claim resource and name of the resource as args input. Then some health checks are performed on the resource and its children. Every resource that is considered unhealthy will be printed out. 
+The diagnose command takes a Composite Resource or Claim resource and name of the resource as args input. Health checks are performed on the resource and its children, and every resource that is considered unhealthy will be printed out. 
 
 | Variable Name  | Shorthand | Default   | Description                                                                                           |
 |----------------|-----------|-----------|-------------------------------------------------------------------------------------------------------|
