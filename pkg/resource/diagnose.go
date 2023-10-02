@@ -9,10 +9,12 @@ func Diagnose(r Resource, unhealthyR Resource) (Resource, error) {
 	if r.GetConditionStatus("Synced") == "False" || r.GetConditionStatus("Ready") == "False" {
 		// If first resource is added to unhealthy Resource struct set it as root. Else resource as child.
 		if reflect.DeepEqual(unhealthyR, Resource{}) {
+			// Dont add children.
 			unhealthyR.manifest = r.manifest
 			unhealthyR.event = r.event
 		} else {
-			unhealthyR.children = append(unhealthyR.children, r)
+			// Dont append children
+			unhealthyR.children = append(unhealthyR.children, Resource{manifest: r.manifest, event: r.event})
 		}
 	}
 	// Diagnose children
