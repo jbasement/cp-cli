@@ -44,7 +44,7 @@ var diagnoseCmd = &cobra.Command{
 		if !reflect.DeepEqual(unhealthyR, resource.Resource{}) {
 			// CLI print unhealthy resources
 			fmt.Printf("Identified the following resources as potentialy unhealthy.\n")
-			if err := resource.PrintResourceTable(unhealthyR, []string{"kind", "apiversion", "name", "synced", "ready", "message", "event"}); err != nil {
+			if err := resource.PrintResourceTable(unhealthyR, []string{"parent", "kind", "apiversion", "name", "synced", "ready", "message", "event"}); err != nil {
 				return fmt.Errorf("Error printing CLI table: %w\n", err)
 			}
 		} else {
