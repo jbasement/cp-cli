@@ -42,12 +42,17 @@ func (r Resource) GetConditionStatus(conditionKey string) string {
 
 func (r Resource) GetConditionMessage() string {
 	conditions, _, _ := unstructured.NestedSlice(r.manifest.Object, "status", "conditions")
-	for _, condition := range conditions {
-		conditionMap, _ := condition.(map[string]interface{})
-		conditionMessage, _ := conditionMap["message"].(string)
-		return conditionMessage
 
+	for _, item := range conditions {
+		if itemMap, ok := item.(map[string]interface{}); ok {
+			if message, exists := itemMap["message"]; exists {
+				if messageStr, ok := message.(string); ok {
+					return messageStr
+				}
+			}
+		}
 	}
+
 	return ""
 }
 
