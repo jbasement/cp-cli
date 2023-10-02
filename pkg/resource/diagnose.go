@@ -17,7 +17,7 @@ func Diagnose(r Resource, unhealthyR Resource) (Resource, error) {
 	}
 	// Diagnose children
 	for _, resource := range r.children {
-		Diagnose(resource, unhealthyR)
+		unhealthyR, _ = Diagnose(resource, unhealthyR)
 	}
 
 	return unhealthyR, nil
