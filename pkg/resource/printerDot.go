@@ -14,10 +14,12 @@ type GraphPrinter struct {
 	writer io.Writer
 }
 
+// Initialize a new graph printer
 func NewGraphPrinter() *GraphPrinter {
 	return &GraphPrinter{writer: os.Stdout}
 }
 
+// Set a new graph. Gets all the nodes and then prints the graph to a file.
 func (p *GraphPrinter) Print(resource Resource, fields []string, path string) error {
 	g := dot.NewGraph(dot.Undirected)
 	p.printResourceGraph(g, resource, fields)
@@ -36,6 +38,7 @@ func (p *GraphPrinter) Print(resource Resource, fields []string, path string) er
 	return nil
 }
 
+// Iteratre over resources and set ID and label(content) of each node
 func (p *GraphPrinter) printResourceGraph(g *dot.Graph, r Resource, fields []string) {
 	node := g.Node(getResourceID(r))
 	node.Label(getResourceLabel(r, fields))
@@ -47,6 +50,7 @@ func (p *GraphPrinter) printResourceGraph(g *dot.Graph, r Resource, fields []str
 	}
 }
 
+// Set individual resourceID for node
 func getResourceID(r Resource) string {
 	name := r.GetName()
 	if len(name) > 24 {
@@ -56,6 +60,8 @@ func getResourceID(r Resource) string {
 	return fmt.Sprintf("%s-%s", kind, name)
 }
 
+// This functions sets the label (the actual content) of the nodes in a graph.
+// Fields are defined by the fields string.
 func getResourceLabel(r Resource, fields []string) string {
 
 	var label = make([]string, len(fields))

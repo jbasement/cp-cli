@@ -26,5 +26,5 @@ func Execute() {
 }
 
 func init() {
-
+	allowedFields = []string{"parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event"}
 }

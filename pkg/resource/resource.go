@@ -10,22 +10,28 @@ type Resource struct {
 	event    string
 }
 
+// Returns resource kind as string
 func (r Resource) GetKind() string {
 	return r.manifest.GetKind()
 }
 
+// Returns resource name as string
 func (r Resource) GetName() string {
 	return r.manifest.GetName()
 }
 
+// Returns resource namespace as string
 func (r Resource) GetNamespace() string {
 	return r.manifest.GetNamespace()
 }
 
+// Returns resource apiversion as string
 func (r Resource) GetApiVersion() string {
 	return r.manifest.GetAPIVersion()
 }
 
+// This function takes a certain conditionType as input e.g. "Ready" or "Synced"
+// Returns the Status of the map with the conditionType as string
 func (r Resource) GetConditionStatus(conditionKey string) string {
 	conditions, _, _ := unstructured.NestedSlice(r.manifest.Object, "status", "conditions")
 	for _, condition := range conditions {
@@ -40,6 +46,7 @@ func (r Resource) GetConditionStatus(conditionKey string) string {
 	return ""
 }
 
+// Returns the message as string if one is set under `status.conditions` in the manifest.
 func (r Resource) GetConditionMessage() string {
 	conditions, _, _ := unstructured.NestedSlice(r.manifest.Object, "status", "conditions")
 
@@ -56,10 +63,12 @@ func (r Resource) GetConditionMessage() string {
 	return ""
 }
 
+// Returns the latest event of the resource as string
 func (r Resource) GetEvent() string {
 	return r.event
 }
 
+// Returns true if the Resource has children set.
 func (r Resource) GotChildren() bool {
 	if len(r.children) > 0 {
 		return true

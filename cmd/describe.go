@@ -77,7 +77,6 @@ Example:
 }
 
 func init() {
-	allowedFields = []string{"parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event"}
 	fieldFlagDescription := fmt.Sprintf("Comma-separated list of fields. Available fields are %s", allowedFields)
 	allowedOutput = []string{"cli", "graph"}
 	outputFlagDescription := fmt.Sprintf("Output format of resource. Must be one of %s", allowedOutput)

@@ -4,6 +4,9 @@ import (
 	"reflect"
 )
 
+// The Diagnose function takes a r Resource, which should contain at least one resource.
+// The unhealthyR Resource is an initialy empty Resource which is used to store the identified unhealthy resources.
+// The function then returns the unhealthyR
 func Diagnose(r Resource, unhealthyR Resource) (Resource, error) {
 	// Diagnose self
 	if r.GetConditionStatus("Synced") == "False" || r.GetConditionStatus("Ready") == "False" {

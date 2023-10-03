@@ -34,14 +34,14 @@ func GetResource(resourceKind string, resourceName string, namespace string, kub
 		return nil, fmt.Errorf("Couldn't init kubeclient -> %w", err)
 	}
 
-	root := Resource{
-		manifest: &unstructured.Unstructured{Object: map[string]interface{}{}},
-	}
+	// Set manifest for root resource
+	root := Resource{}
 	root.manifest, err = kubeClient.getManifest(resourceKind, resourceName, "", namespace)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't get root resource manifest -> %w", err)
 	}
 
+	// Get all children for root resource by checking resourceRef(s) in manifest
 	root, err = kubeClient.getChildren(root)
 	if err != nil {
 		return &root, fmt.Errorf("Couldn't get children of root resource -> %w", err)
@@ -53,10 +53,9 @@ func GetResource(resourceKind string, resourceName string, namespace string, kub
 // getManifest returns the k8s manifest of a resource as unstructured.
 func (kc *KubeClient) getManifest(resourceKind string, resourceName string, apiVersion string, namespace string) (*unstructured.Unstructured, error) {
 	gr := schema.ParseGroupResource(resourceKind)
-	manifest := &unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
 
+	// Set GVK for resource in new manifest
+	manifest := &unstructured.Unstructured{}
 	manifest.SetName(resourceName)
 	manifest.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   gr.Group,
@@ -64,6 +63,7 @@ func (kc *KubeClient) getManifest(resourceKind string, resourceName string, apiV
 		Kind:    gr.Resource,
 	})
 
+	// Check if resource is namespaced as the namespace parameter has to bet set in the kc.client.Resource() call below
 	isNamespaced, err := kc.isResourceNamespaced(gr.Resource, apiVersion)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't detect if resource is namespaced -> %w", err)
@@ -72,6 +72,7 @@ func (kc *KubeClient) getManifest(resourceKind string, resourceName string, apiV
 		manifest.SetNamespace(namespace)
 	}
 
+	// Built GVR schema for API server call below.
 	gvr, err := kc.rmapper.ResourceFor(schema.GroupVersionResource{
 		Group:    manifest.GroupVersionKind().Group,
 		Version:  manifest.GroupVersionKind().Version,
@@ -81,6 +82,7 @@ func (kc *KubeClient) getManifest(resourceKind string, resourceName string, apiV
 		return nil, fmt.Errorf("Couldn't build GVR schema for resource -> %w", err)
 	}
 
+	// Get manifest for resource
 	result, err := kc.dclient.Resource(gvr).Namespace(manifest.GetNamespace()).Get(context.TODO(), manifest.GetName(), metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't get resource manifest from KubeAPI -> %w", err)
@@ -93,6 +95,7 @@ func (kc *KubeClient) getManifest(resourceKind string, resourceName string, apiV
 // The function checks the `spec.resourceRef` and `spec.resourceRefs` path for child resources.
 // If resources are discovered they are added as children to the passed r Resource.
 func (kc *KubeClient) getChildren(r Resource) (Resource, error) {
+	// Check both singular and plural for spec.resourceRef(s)
 	if resourceRefMap, found, err := getStringMapFromNestedField(*r.manifest, "spec", "resourceRef"); found && err == nil {
 		r, err = kc.setChildren(resourceRefMap, r)
 	} else if resourceRefs, found, err := getSliceOfMapsFromNestedField(*r.manifest, "spec", "resourceRefs"); found && err == nil {
@@ -116,6 +119,7 @@ func (kc *KubeClient) setChildren(resourceRefMap map[string]string, r Resource) 
 	apiVersion := resourceRefMap["apiVersion"]
 
 	// Get manifest. Assumes children is in same namespace as claim if resouce is namespaced.
+	// TODO: Not sure if namespace is set in namespaced resources in `spec.resourceRef(s)`
 	u, err := kc.getManifest(kind, name, apiVersion, r.GetNamespace())
 	if err != nil {
 		return r, fmt.Errorf("Couldn't get manifest of children -> %w", err)
@@ -156,6 +160,7 @@ func (kc *KubeClient) isResourceNamespaced(resourceKind string, apiVersion strin
 	// Trim version if set
 	apiVersion = strings.Split(apiVersion, "/")[0]
 
+	// Find kind and apiVersion (if set) in the resource list
 	for _, apiResourceList := range apiResourceLists {
 		for _, apiResource := range apiResourceList.APIResources {
 			if apiResource.Group == apiVersion || apiVersion == "" {
