@@ -1,5 +1,5 @@
 # Unofficial crossplane CLI - cp-cli
-This is a hobby project I built to gain more experience in Go and especially the k8s clients. The goal was to implement two commands `describe` and `diagnose`.
+Unofficial Crossplane CLI as hobby project. The goal was to implement two commands `describe` and `diagnose`.
 
 # Commands
 ## describe
