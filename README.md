@@ -23,10 +23,14 @@ The describe command takes a Composite Resource or Claim resource and name of th
 ## diagnose
 The diagnose command takes a Composite Resource or Claim resource and name of the resource as args input. Health checks are performed on the resource and its children, and every resource that is considered unhealthy will be printed out. 
 
+The command is similar to the describe command but only outputs resources diagnosed as unhealthy.
+
 | Variable Name  | Shorthand | Default   | Description                                                                                           |
 |----------------|-----------|-----------|-------------------------------------------------------------------------------------------------------|
 | namespace      | -n        | "default" | Kubernetes namespace                                                                                  |
 | kubeconfig     | -k        | ""        | Path to the Kubeconfig file.                                                                         |
+| fields         | -f        | parent, kind, apiversion, name, synced, ready, message, event   | Comma-separated list of fields to display. Available fields are "parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event". |
+
 
 **Usage:** cp-cli describe TYPE[.GROUP] NAME 
 
@@ -35,11 +39,12 @@ The diagnose command takes a Composite Resource or Claim resource and name of th
 2. `cp-cli diagnose objectstorage my-object-storage -n my-namespace`
 
 # TODOs
-There are obviously still a lot of todos, as this was built as a POC and out of curiosity. Things to add
+There are obviously still a lot of todos. Things to add:
 
 1. Testing
 2. Logging
 3. Better error handling
+4. Discover secrets of resources
 
 # Reference
 cp-cli has been inspired by other projects:
