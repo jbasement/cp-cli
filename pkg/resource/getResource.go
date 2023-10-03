@@ -26,7 +26,9 @@ type KubeClient struct {
 	dc        *discovery.DiscoveryClient
 }
 
-func GetResource(args []string, namespace string, kubeconfig string) (*Resource, error) {
+// GetResource takes a the kind, name, namespace of a resource and a kubeconfig as input.
+// The function then returns a type Resource struct, containing itself and all its children as Resource.
+func GetResource(resourceKind string, resourceName string, namespace string, kubeconfig string) (*Resource, error) {
 	kubeClient, err := newKubeClient(kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't init kubeclient -> %w", err)
@@ -35,7 +37,7 @@ func GetResource(args []string, namespace string, kubeconfig string) (*Resource,
 	root := Resource{
 		manifest: &unstructured.Unstructured{Object: map[string]interface{}{}},
 	}
-	root.manifest, err = kubeClient.getManifest(args[1], args[0], "", namespace)
+	root.manifest, err = kubeClient.getManifest(resourceKind, resourceName, "", namespace)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't get root resource manifest -> %w", err)
 	}
@@ -48,7 +50,8 @@ func GetResource(args []string, namespace string, kubeconfig string) (*Resource,
 	return &root, nil
 }
 
-func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiVersion string, namespace string) (*unstructured.Unstructured, error) {
+// getManifest returns the k8s manifest of a resource as unstructured.
+func (kc *KubeClient) getManifest(resourceKind string, resourceName string, apiVersion string, namespace string) (*unstructured.Unstructured, error) {
 	gr := schema.ParseGroupResource(resourceKind)
 	manifest := &unstructured.Unstructured{
 		Object: map[string]interface{}{},
@@ -61,7 +64,7 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 		Kind:    gr.Resource,
 	})
 
-	isNamespaced, err := kc.IsResourceNamespaced(gr.Resource, apiVersion)
+	isNamespaced, err := kc.isResourceNamespaced(gr.Resource, apiVersion)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't detect if resource is namespaced -> %w", err)
 	}
@@ -86,6 +89,9 @@ func (kc *KubeClient) getManifest(resourceName string, resourceKind string, apiV
 	return result, nil
 }
 
+// The getChildren function returns the r Resource that is passed to it on function call.
+// The function checks the `spec.resourceRef` and `spec.resourceRefs` path for child resources.
+// If resources are discovered they are added as children to the passed r Resource.
 func (kc *KubeClient) getChildren(r Resource) (Resource, error) {
 	if resourceRefMap, found, err := getStringMapFromNestedField(*r.manifest, "spec", "resourceRef"); found && err == nil {
 		r, err = kc.setChildren(resourceRefMap, r)
@@ -100,6 +106,9 @@ func (kc *KubeClient) getChildren(r Resource) (Resource, error) {
 	return r, nil
 }
 
+// The setChildren function is a helper for the getChildren function.
+// It calls the getManifest function and then adds the children to the list of children.
+// It returns the r Resource that was passed to it, containing the children that was set during this function call.
 func (kc *KubeClient) setChildren(resourceRefMap map[string]string, r Resource) (Resource, error) {
 	// Get info about child
 	name := resourceRefMap["name"]
@@ -132,9 +141,12 @@ func (kc *KubeClient) setChildren(resourceRefMap map[string]string, r Resource) 
 	return r, nil
 }
 
-func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion string) (bool, error) {
-	// This function currently does NOT consider different versions of a resource kind. That may cause issues as the scope of a resource might chance depending on the version.
-
+// The isResourceNamespaced function returns true is passed resource is namespaced, else false.
+// The functions works by getting all k8s API resources and then checking for the specific resourceKind and apiVersion passed.
+// Once a match is found it is checked if the resource is namespaced.
+// If an empty apiVersion string is passed the function also works. But issues may occur in case some kind exists more then once.
+// E.g both Azure and AWS provide a group resouce. So the function is not able to identify for which resource kind the namespace is checked and chooses the first match.
+func (kc *KubeClient) isResourceNamespaced(resourceKind string, apiVersion string) (bool, error) {
 	// Retrieve the API resource list
 	apiResourceLists, err := kc.dc.ServerPreferredResources()
 	if err != nil {
@@ -158,6 +170,7 @@ func (kc *KubeClient) IsResourceNamespaced(resourceKind string, apiVersion strin
 	return false, fmt.Errorf("resource not found in API server -> Kind:%s ApiVersion %s", resourceKind, apiVersion)
 }
 
+// The getEvent function returns the latest occuring event of a resource.
 func (kc *KubeClient) getEvent(resourceName string, resourceKind string, apiVersion string, namespace string) (string, error) {
 	// List events for the resource.
 	eventList, err := kc.clientset.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{
@@ -177,6 +190,9 @@ func (kc *KubeClient) getEvent(resourceName string, resourceKind string, apiVers
 	return latestEvent.Message, nil
 }
 
+// The newKubeClient function returns a KubeClient struct which consists of 3 client types.
+// The dynamic client dclient, the "regular" k8s client clientset, and the discoveryClient dc
+// The rmapper can be used to set the GVR of a resource.
 func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	// Initialize a Kubernetes client.
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -221,6 +237,8 @@ func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	}, nil
 }
 
+// This is a helper function for getChildren()
+// It returns a map which should consist of the keys "name", "kind", and "apiversion"
 func getStringMapFromNestedField(obj unstructured.Unstructured, fields ...string) (map[string]string, bool, error) {
 	nestedField, found, err := unstructured.NestedStringMap(obj.Object, fields...)
 	if !found || err != nil {
@@ -235,6 +253,8 @@ func getStringMapFromNestedField(obj unstructured.Unstructured, fields ...string
 	return result, true, nil
 }
 
+// This is a helper function for getChildren()
+// It returns a list of maps which should consist of the keys "name", "kind", and "apiversion"
 func getSliceOfMapsFromNestedField(obj unstructured.Unstructured, fields ...string) ([]map[string]string, bool, error) {
 	nestedField, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
 	if !found || err != nil {

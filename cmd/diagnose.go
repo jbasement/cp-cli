@@ -28,8 +28,11 @@ var diagnoseCmd = &cobra.Command{
 			kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 		}
 
+		resourceKind := args[0]
+		resourceName := args[1]
+
 		// Get resource object. Contains k8s resource and all its children, also as resource.
-		root, err := resource.GetResource(args, namepace, kubeconfig)
+		root, err := resource.GetResource(resourceKind, resourceName, namepace, kubeconfig)
 		if err != nil {
 			return fmt.Errorf("Error getting resource -> %w", err)
 		}
