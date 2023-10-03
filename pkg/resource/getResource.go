@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 type KubeClient struct {
@@ -220,8 +221,8 @@ func newKubeClient(kubeconfig string) (*KubeClient, error) {
 	// Use to get events
 	clientset, _ := kubernetes.NewForConfig(config)
 
-	discoveryCacheDir := filepath.Join("./.kube", "cache", "discovery")
-	httpCacheDir := filepath.Join("./.kube", "http-cache")
+	discoveryCacheDir := filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery")
+	httpCacheDir := filepath.Join(homedir.HomeDir(), ".kube", "http-cache")
 	discoveryClient, err := disk.NewCachedDiscoveryClientForConfig(
 		config,
 		discoveryCacheDir,
