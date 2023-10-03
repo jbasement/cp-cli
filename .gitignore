@@ -1,6 +1,3 @@
 .kube/*
-output.png
-go.sum
-go.mod
-graph.png
-TODO
+*.png
+
