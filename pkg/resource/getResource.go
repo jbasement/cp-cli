@@ -116,7 +116,7 @@ func (kc *KubeClient) setChildren(resourceRefMap map[string]string, r Resource) 
 	apiVersion := resourceRefMap["apiVersion"]
 
 	// Get manifest. Assumes children is in same namespace as claim if resouce is namespaced.
-	u, err := kc.getManifest(name, kind, apiVersion, r.GetNamespace())
+	u, err := kc.getManifest(kind, name, apiVersion, r.GetNamespace())
 	if err != nil {
 		return r, fmt.Errorf("Couldn't get manifest of children -> %w", err)
 	}
