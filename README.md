@@ -1,5 +1,6 @@
 # Unofficial crossplane CLI - cp-cli
 Unofficial Crossplane CLI as hobby project. The goal was to implement two commands `describe` and `diagnose`.
+These commands were created to speed up the debugging process of Composite Resources.
 
 # Commands
 ## describe
