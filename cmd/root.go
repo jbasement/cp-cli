@@ -4,12 +4,13 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-var namepace, kubeconfig, output, graphPath string
+var namepace, kubeconfig, output, graphPath, fieldFlagDescription string
 var fields, allowedFields, allowedOutput []string
 
 // rootCmd represents the base command when called without any subcommands
@@ -27,4 +28,5 @@ func Execute() {
 
 func init() {
 	allowedFields = []string{"parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event"}
+	fieldFlagDescription = fmt.Sprintf("Comma-separated list of fields. Available fields are %s", allowedFields)
 }

@@ -47,7 +47,7 @@ var diagnoseCmd = &cobra.Command{
 		if !reflect.DeepEqual(unhealthyR, resource.Resource{}) {
 			// CLI print unhealthy resources
 			fmt.Printf("Identified the following resources as potentialy unhealthy.\n")
-			if err := resource.PrintResourceTable(unhealthyR, []string{"parent", "kind", "apiversion", "name", "synced", "ready", "message", "event"}); err != nil {
+			if err := resource.PrintResourceTable(unhealthyR, fields); err != nil {
 				return fmt.Errorf("Error printing CLI table: %w\n", err)
 			}
 		} else {
@@ -63,4 +63,6 @@ func init() {
 
 	diagnoseCmd.Flags().StringVarP(&namepace, "namespace", "n", "default", "k8s namespace")
 	diagnoseCmd.Flags().StringVarP(&kubeconfig, "kubeconfig", "k", "", "Path to Kubeconfig")
+	diagnoseCmd.Flags().StringSliceVarP(&fields, "fields", "f", []string{"parent", "kind", "apiversion", "name", "synced", "ready", "message", "event"}, fieldFlagDescription)
+
 }
