@@ -23,10 +23,14 @@ The describe command takes a Composite Resource or Claim resource and name of th
 ## diagnose
 The diagnose command takes a Composite Resource or Claim resource and name of the resource as args input. Health checks are performed on the resource and its children, and every resource that is considered unhealthy will be printed out. 
 
+The command is similar to the describe command but only outputs resources diagnosed as unhealthy.
+
 | Variable Name  | Shorthand | Default   | Description                                                                                           |
 |----------------|-----------|-----------|-------------------------------------------------------------------------------------------------------|
 | namespace      | -n        | "default" | Kubernetes namespace                                                                                  |
 | kubeconfig     | -k        | ""        | Path to the Kubeconfig file.                                                                         |
+| fields         | -f        | parent, kind, apiversion, name, synced, ready, message, event   | Comma-separated list of fields to display. Available fields are "parent", "name", "kind", "namespace", "apiversion", "synced", "ready", "message", "event". |
+
 
 **Usage:** cp-cli describe TYPE[.GROUP] NAME 
 
